@@ -127,11 +127,12 @@ app.get('/api/chats',async (req,res) => {
   let respone = []
   for(let i=0;i<user.message.length;i++){
     const user1 = await User.findById(user.message[i])
+    if (!user1) continue;
     respone.push({name:user1.name,id:user.message[i]})
   }
   res.send(respone)
 })
 
 
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
