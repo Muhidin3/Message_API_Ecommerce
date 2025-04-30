@@ -1,0 +1,26 @@
+<!-- user2.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>User 2 - Receiver</title>
+  <script src="http://localhost:4000/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <h2>User 2 - Receiver</h2>
+  <div id="messages" style="white-space: pre-wrap;"></div>
+
+  <script>
+    const socket = io("http://localhost:4000");
+
+    const userId = "zakir";
+    socket.emit("register", userId);
+
+    socket.on("receiveMessage", ({ senderId, text, timestamp }) => {
+      const messages = document.getElementById("messages");
+      const time = new Date(timestamp).toLocaleTimeString();
+      messages.textContent += `[${time}] ${senderId}: ${text}\n`;
+    });
+  </script>
+</body>
+</html>

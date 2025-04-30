@@ -1,0 +1,36 @@
+<!-- user1.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>User 1 - Sender</title>
+  <script src="http://localhost:4000/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <h2>User 1 - Sender</h2>
+  <input type="text" id="receiverId" placeholder="Receiver ID (e.g., user2)">
+  <input type="text" id="messageInput" placeholder="Type your message">
+  <button onclick="sendMessage()">Send</button>
+
+  <script>
+    const socket = io("http://localhost:4000");
+
+    const userId = "user1";
+    socket.emit("register", userId);
+
+    function sendMessage() {
+      const receiverId = document.getElementById("receiverId").value.trim();
+      const text = document.getElementById("messageInput").value.trim();
+
+      if (receiverId && text) {
+        socket.emit("sendMessage", {
+          senderId: userId,
+          receiverId,
+          text
+        });
+        console.log("Message sent to", receiverId, ":", text);
+      }
+    }
+  </script>
+</body>
+</html>
