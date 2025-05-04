@@ -23,20 +23,26 @@ app.use(cors());
 app.use(express.json());
 
 configDotenv()
-mongoose.connect(process.env.MONGO_URL).then(() => console.log('MongoDB connected'))
-  .catch(err => console.error(err));
-
+async function connectDB() {
+  if(mongoose.connection.readyState==1){
+    return
+  }
+  await mongoose.connect(process.env.MONGO_URL).then(() => console.log('MongoDB connected'))
+    .catch(err => console.error(err));
+  
+}
+connectDB()
 
 const users = new Map(); // userId => socketId
 
 
 io.on('connection', socket => {
-  console.log('Socket connected:', socket.id);
+  // console.log('Socket connected:', socket.id);
 
   // regitering user to socket
   socket.on('register', userId => {
     users.set(userId, socket.id);
-    console.log(`User registered: ${userId} => ${socket.id}`);
+    // console.log(`User registered: ${userId} => ${socket.id}`);
   });
 
   // getting message from sender
@@ -46,7 +52,7 @@ io.on('connection', socket => {
       // Save to messgae
       const message = new Message({ senderId, receiverId, message:text });
       await message.save();
-      console.log('Message saved:', message);
+      // console.log('Message saved:', message);
 
     // Send to receiver if online
       const receiverSocket = users.get(receiverId);
@@ -54,7 +60,8 @@ io.on('connection', socket => {
         io.to(receiverSocket).emit('receiveMessage', {
           senderId,
           text,
-          timestamp: message.timestamp
+          timestamp: message.time,
+          id:message._id
         });
         console.log(`Sent message to ${receiverId}`);
       }
@@ -78,9 +85,12 @@ app.get('/', (req, res) => {
   res.send('Chat server running');
 });
 app.get('/api/message',async (req, res) => {
+  connectDB()
     const params = req.query
     const senderId = params.senderId
     const receiverId = params.receiverId
+    // console.log(`sender: ${senderId}`)
+    // console.log(`reciver: ${receiverId}`)
     const message = await Message.find({$or:[{senderId:senderId,receiverId:receiverId},
                                             {senderId:receiverId,receiverId:senderId}]})
                                             .sort({createdAt:-1}).limit(20)
@@ -110,14 +120,15 @@ app.post('/api/addmessage',async (req,res) => {
   const body = req.body
   const id =body.id
   const reciverid = body.receiverId
-  const user = await User.findById(id)
-  user.message.push(reciverid)
-  await user.save()
-  // user 2 is the reciver person and user1 is whos calling
+  // user 2 is the reciver person and user1 is who's calling
   const user2 = await User.findById(reciverid)
   user2.message.push(id)
   await user2.save()
-  res.send(user)
+
+  const user = await User.findById(id)
+  user.message.push(reciverid)
+  await user.save()
+  res.json({user,user2})
 })
 
 app.get('/api/chats',async (req,res) => {
@@ -131,6 +142,14 @@ app.get('/api/chats',async (req,res) => {
     respone.push({name:user1.name,id:user.message[i]})
   }
   res.send(respone)
+})
+
+
+app.get('/api/getusername',async (req,res) => {
+  const params = req.query
+  const id = params.id
+  const user = await User.findById(id)
+  res.json({name:user.name,id:user._id})
 })
 
 
